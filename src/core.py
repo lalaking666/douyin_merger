@@ -130,7 +130,7 @@ class DouyinVideoSpider:
                     cursor = data.get("max_cursor")
                     logger.info(f"有更多视频,继续获取: {cursor}")
                     sleep(randint(1,2))
-                    break
+                    continue
                 else:
                     logger.info(f"没有更多视频了,结束")
                     break
@@ -149,11 +149,16 @@ class DouyinMergerCore:
             if response.status_code == 403:
                 continue
             elif response.status_code == 302:
-                try:
-                    response = requests.get(video_link, timeout=600)
-                except requests.exceptions.Timeout:
-                    logger.error(f"下载{video_info.vid}视频超时: {video_link}, 跳过")
-                    continue
+                for i in range(5):
+                    try:
+                        response = requests.get(video_link, timeout=600)
+                        break
+                    except requests.exceptions.Timeout:
+                        logger.error(f"下载{video_info.vid}视频超时: {video_link}, 跳过")
+                        continue
+                    except:
+                        continue
+
                 if response.status_code != 200:
                     continue
                 else:
@@ -309,7 +314,7 @@ def main():
         items = spider.get_post_list(nickname, sec_uid)
         items = list(items)
         logger.info(f"开始使用线程池下载 {len(items)} 个视频")
-        download_results = douyin_merger_core.download_videos_with_thread_pool(items, max_workers=12)
+        download_results = douyin_merger_core.download_videos_with_thread_pool(items, max_workers=4)
     
         # 统计下载结果
         success_count = sum(download_results)

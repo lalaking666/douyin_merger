@@ -6,7 +6,7 @@
 
 ```bash
 # 1. 克隆项目
-git clone <your-repo-url>
+git clone https://github.com/lalaking666/douyin_merger.git
 cd douyin_merger
 
 # 2. 安装依赖
