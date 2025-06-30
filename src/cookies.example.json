@@ -1,0 +1,22 @@
+[
+  {
+    "name": "ttwid",
+    "value": "your_ttwid_value_here"
+  },
+  {
+    "name": "msToken",
+    "value": "your_msToken_value_here"
+  },
+  {
+    "name": "bd_ticket_guard_client_data",
+    "value": "your_bd_ticket_guard_client_data_value_here"
+  },
+  {
+    "name": "passport_csrf_token",
+    "value": "your_passport_csrf_token_value_here"
+  },
+  {
+    "name": "passport_assist_user",
+    "value": "your_passport_assist_user_value_here"
+  }
+] 

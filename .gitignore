@@ -1,0 +1,16 @@
+src/data
+.DS_Store
+.vscode
+.pyc
+__pycache__
+
+# 敏感配置文件
+src/cookies.json
+src/config.json
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.temp

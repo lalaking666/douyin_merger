@@ -1,0 +1,12 @@
+{
+  "users": [
+    {
+      "nickname": "用户昵称1",
+      "sec_uid": "MS4wLjABAAAA..."
+    },
+    {
+      "nickname": "用户昵称2", 
+      "sec_uid": "MS4wLjABAAAA..."
+    }
+  ]
+} 
