@@ -72,7 +72,7 @@ pip install -r requirements.txt
 
 ### 2. config.json 格式
 
-`config.json` 文件包含要下载的用户信息：
+`config.json` 文件包含要下载的用户信息和程序配置：
 
 ```json
 {
@@ -81,9 +81,17 @@ pip install -r requirements.txt
       "nickname": "用户昵称",
       "sec_uid": "用户sec_uid"
     }
-  ]
+  ],
+  "ffmpeg_max_workers": 4,
+  "store_dir": "data"
 }
 ```
+
+#### 配置项说明
+
+- `users`: 用户列表，每个用户包含 `nickname`（昵称）和 `sec_uid`（用户ID）
+- `ffmpeg_max_workers`: FFmpeg转码和合并时使用的最大线程数，默认为4
+- `store_dir`: 视频文件存储目录，默认为"data"
 
 #### 如何获取 sec_uid
 
@@ -124,7 +132,7 @@ douyin_merger/
 │   ├── cookies.example.json # Cookie 配置示例
 │   ├── config.json         # 用户配置 (需要用户配置)
 │   ├── config.example.json # 用户配置示例
-│   └── data/               # 下载的视频文件
+│   └── data/               # 下载的视频文件 (可配置)
 ├── setup.py                # 安装脚本
 ├── README.md
 ├── pyproject.toml
@@ -134,9 +142,9 @@ douyin_merger/
 
 ## 输出文件
 
-- 下载的视频文件保存在 `src/data/{用户昵称}/` 目录下
-- 合并后的视频文件保存为 `src/data/{用户昵称}.mp4`
-- 视频元数据保存为 `src/data/{用户昵称}/{视频ID}.json`
+- 下载的视频文件保存在 `src/{store_dir}/{用户昵称}/` 目录下
+- 合并后的视频文件保存为 `src/{store_dir}/{用户昵称}.mp4`
+- 视频元数据保存为 `src/{store_dir}/{用户昵称}/{视频ID}.json`
 
 ## 注意事项
 

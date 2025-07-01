@@ -37,7 +37,10 @@ def setup_project():
     print("\n📝 配置说明:")
     print("1. 编辑 src/cookies.json - 填入从Cookie Editor导出的Cookie信息")
     print("2. 编辑 src/config.json - 填入要下载的用户昵称和sec_uid")
-    print("3. 运行: python src/core.py")
+    print("3. 可选配置:")
+    print("   - ffmpeg_max_workers: FFmpeg转码线程数 (默认4)")
+    print("   - store_dir: 视频存储目录 (默认data)")
+    print("4. 运行: python src/core.py")
     print("\n📖 详细说明请查看 README.md 文件")
 
 if __name__ == "__main__":

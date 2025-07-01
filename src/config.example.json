@@ -8,5 +8,7 @@
       "nickname": "用户昵称2", 
       "sec_uid": "MS4wLjABAAAA..."
     }
-  ]
+  ],
+  "ffmpeg_max_workers":4,
+  "store_dir": "data"
 } 

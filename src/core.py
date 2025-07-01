@@ -20,30 +20,31 @@ import requests
 from tqdm import tqdm
 from xb import build_request_url_with_xb
 
-DATA_DIR = Path(__file__).parent / "data"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-
 # 从文本文件中读取cookie
 with open(Path(__file__).parent / "cookies.json", "r") as f:
     COOKIES = {item["name"]: item["value"] for item in json.load(f)}
 
-def load_config() -> List[Dict[str, str]]:
+def load_config() -> Dict[str, Any]:
     """
     加载配置文件
-    :return: 用户配置列表
+    :return: 配置字典，包含users、ffmpeg_max_workers、store_dir等
     """
     config_file = Path(__file__).parent / "config.json"
     if not config_file.exists():
         logger.error(f"配置文件不存在: {config_file}")
-        return []
+        return {"users": [], "ffmpeg_max_workers": 4, "store_dir": "data"}
     
     try:
         with open(config_file, "r", encoding="utf-8") as f:
             config = json.load(f)
-            return config.get("users", [])
+            return {
+                "users": config.get("users", []),
+                "ffmpeg_max_workers": config.get("ffmpeg_max_workers", 4),
+                "store_dir": config.get("store_dir", "data")
+            }
     except Exception as e:
         logger.error(f"加载配置文件失败: {e}")
-        return []
+        return {"users": [], "ffmpeg_max_workers": 4, "store_dir": "data"}
 
 
 class DouyinUserInfo(BaseModel):
@@ -140,8 +141,9 @@ class DouyinVideoSpider:
             
 
 class DouyinMergerCore:
-    def __init__(self):
-        pass
+    def __init__(self, store_dir: str = "data"):
+        self.store_dir = Path(store_dir)
+        self.store_dir.mkdir(parents=True, exist_ok=True)
     
     def download_video(self, video_info: DouyinVideoInfo)->bool:
         for video_link in video_info.video_links:
@@ -163,12 +165,12 @@ class DouyinMergerCore:
                     continue
                 else:
                     # 下载成功，写入文件
-                    file_path = DATA_DIR / video_info.user.nick / f"{video_info.vid}.mp4"
+                    file_path = self.store_dir / video_info.user.nick / f"{video_info.vid}.mp4"
                     file_path.parent.mkdir(parents=True, exist_ok=True)
                     with open(file_path, "wb") as f:
                         f.write(response.content)
                     # 写入视频元数据
-                    video_info_file_path = DATA_DIR / video_info.user.nick / f"{video_info.vid}.json"
+                    video_info_file_path = self.store_dir / video_info.user.nick / f"{video_info.vid}.json"
                     video_info.local_file_path = file_path
                     with open(video_info_file_path, "w") as f:
                         f.write(video_info.model_dump_json())
@@ -182,10 +184,10 @@ class DouyinMergerCore:
     def get_local_video_list(self, nick: str='')->List[DouyinVideoInfo]:
         result = []
         
-        for file in (DATA_DIR/f"{nick}").glob(f"*.json"):
+        for file in (self.store_dir/f"{nick}").glob(f"*.json"):
             with open(file, "r") as f:
                 video_info = DouyinVideoInfo.model_validate_json(f.read())
-                video_info.local_file_path = DATA_DIR / video_info.user.nick / f"{video_info.vid}.mp4"
+                video_info.local_file_path = self.store_dir / video_info.user.nick / f"{video_info.vid}.mp4"
                 result.append(video_info)
         return result
 
@@ -217,17 +219,18 @@ class DouyinMergerCore:
         
         return results
     
-    def merge_videos(self, nick: str, video_list: List[DouyinVideoInfo])->bool:
+    def merge_videos(self, nick: str, video_list: List[DouyinVideoInfo], ffmpeg_max_workers: int = 4)->bool:
         """
         合并视频列表中的所有视频（一次性合并，兼容 moviepy 设计）
         :param video_list: 要合并的视频列表
+        :param ffmpeg_max_workers: ffmpeg最大线程数
         :return: 合并是否成功
         """
         # 按创建时间排序视频
         sorted_videos = sorted(video_list, key=lambda x: x.create_time, reverse=True)
         
         # 创建输出目录
-        output_dir = DATA_DIR / nick
+        output_dir = self.store_dir / nick
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # 读取上一次合并的视频列表
@@ -258,12 +261,12 @@ class DouyinMergerCore:
                        -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black" \
                                -r 30 -c:v libx264 -profile:v high -preset fast -crf 23 \
                                -c:a aac -b:a 128k -ar 44100 -ac 2 \
-                               -movflags +faststart {str(resize_video_path)}')
+                               -movflags +faststart -threads {ffmpeg_max_workers} {str(resize_video_path)}')
             video_info.resize_video_path = resize_video_path
             logger.info(f"转码视频: {video_info.vid} 成功: {resize_video_path}")
 
         # 对视频文件进行合并
-        merged_video_path = output_dir.parent / f"{nick}.mp4"
+        merged_video_path = self.store_dir / f"{nick}.mp4"
         # 创建一个filelist.txt文件
         with open(output_dir / ".filelist.txt", "w") as f:
             
@@ -276,7 +279,7 @@ class DouyinMergerCore:
         # 使用ffmpeg合并视频
         temp_file_path = output_dir / ".temp.mp4"
         logger.info(f"开始合并视频...")
-        os.system(f'ffmpeg -f concat -safe 0 -i {output_dir / ".filelist.txt"} -c copy {str(temp_file_path)}')
+        os.system(f'ffmpeg -f concat -safe 0 -i {output_dir / ".filelist.txt"} -c copy -threads {ffmpeg_max_workers} {str(temp_file_path)}')
         # 删除原始文件，并重命名
         if merged_video_path.exists():
             os.remove(merged_video_path)
@@ -290,13 +293,20 @@ class DouyinMergerCore:
 
 def main():
     # 加载配置
-    users_config = load_config()
+    config = load_config()
+    users_config = config.get("users", [])
+    ffmpeg_max_workers = config.get("ffmpeg_max_workers", 4)
+    store_dir = config.get("store_dir", "data")
+    
     if not users_config:
         logger.error("没有找到有效的用户配置，请检查 config.json 文件")
         return
 
+    logger.info(f"使用存储目录: {store_dir}")
+    logger.info(f"FFmpeg最大线程数: {ffmpeg_max_workers}")
+
     # 加载已下载的视频列表
-    douyin_merger_core = DouyinMergerCore()
+    douyin_merger_core = DouyinMergerCore(store_dir)
 
     for user_config in users_config:
         nickname = user_config.get("nickname")
@@ -324,7 +334,7 @@ def main():
         # 开始合并视频
         items = douyin_merger_core.get_local_video_list(nickname)
         logger.info("开始合并视频")
-        merge_success = douyin_merger_core.merge_videos(nickname, items)
+        merge_success = douyin_merger_core.merge_videos(nickname, items, ffmpeg_max_workers)
         if merge_success:
             logger.info("视频合并成功")
     
