@@ -100,7 +100,7 @@ class DouyinVideoSpider:
             response = requests.get(url, headers=self.HEADERS, cookies=self.COOKIES)
             data = response.json()
             if data.get("aweme_list"):
-                
+                has_new = False # 是否有新的视频
                 for item in data.get("aweme_list"):
                     if item.get("aweme_id") in self._vid_set:
                         logger.info(f"已下载视频,跳过: {item.get('aweme_id')}")
@@ -127,6 +127,10 @@ class DouyinVideoSpider:
                         user=user,
                         video_links = video_links
                     )
+                    has_new = True
+                if not has_new:
+                    logger.info(f"没有新的视频了,结束")
+                    break
                 if data.get("has_more"):
                     cursor = data.get("max_cursor")
                     logger.info(f"有更多视频,继续获取: {cursor}")
