@@ -267,7 +267,11 @@ class DouyinMergerCore:
                                -c:a aac -b:a 128k -ar 44100 -ac 2 \
                                -movflags +faststart -threads {ffmpeg_max_workers} {str(resize_video_path)}')
             video_info.resize_video_path = resize_video_path
-            logger.info(f"转码视频: {video_info.vid} 成功: {resize_video_path}")
+            if resize_video_path.exists() and resize_video_path.stat().st_size > 0:
+                logger.info(f"转码视频: {video_info.vid} 成功: {resize_video_path}")
+            else:
+                logger.error(f"转码视频: {video_info.vid} 失败")
+                video_info.resize_video_path = None
 
         # 对视频文件进行合并
         merged_video_path = self.store_dir / f"{nick}.mp4"
@@ -275,7 +279,8 @@ class DouyinMergerCore:
         with open(output_dir / ".filelist.txt", "w") as f:
             
             for video_info in sorted_videos:
-                f.write(f"file '{str(video_info.resize_video_path)}'\n")
+                if video_info.resize_video_path:
+                    f.write(f"file '{str(video_info.resize_video_path)}'\n")
             # 原来的视频拼接在后面
             if merged_video_path.exists():
                 f.write(f"file '{str(merged_video_path)}'\n")
