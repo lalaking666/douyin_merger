@@ -246,15 +246,15 @@ class DouyinMergerCore:
             merged_videos = []
 
         # 过滤掉已经合并的视频
-        sorted_videos = [video for video in sorted_videos if video.vid not in merged_videos]
+        new_videos = [video for video in sorted_videos if video.vid not in merged_videos]
 
-        if not sorted_videos:
+        if not new_videos:
             logger.info(f"没有需要合并的视频")
             return True
         
         # 首先需要先对每个视频进行统一的尺寸处理, 强制处理成1080x1920
-        logger.info(f"开始转码视频: {len(sorted_videos)} 个")
-        for video_info in tqdm(sorted_videos):
+        logger.info(f"开始转码视频: {len(new_videos)} 个")
+        for video_info in tqdm(new_videos):
             # 对视频转码
             logger.info(f"开始转码视频: {video_info.vid}")
             resize_video_path = output_dir / f"{video_info.vid}-resized.mp4"
@@ -277,13 +277,10 @@ class DouyinMergerCore:
         merged_video_path = self.store_dir / f"{nick}.mp4"
         # 创建一个filelist.txt文件
         with open(output_dir / ".filelist.txt", "w") as f:
-            
             for video_info in sorted_videos:
                 if video_info.resize_video_path:
                     f.write(f"file '{str(video_info.resize_video_path)}'\n")
-            # 原来的视频拼接在后面
-            if merged_video_path.exists():
-                f.write(f"file '{str(merged_video_path)}'\n")
+            
 
         # 使用ffmpeg合并视频
         temp_file_path = output_dir / ".temp.mp4"
