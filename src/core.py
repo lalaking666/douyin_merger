@@ -192,6 +192,9 @@ class DouyinMergerCore:
             with open(file, "r") as f:
                 video_info = DouyinVideoInfo.model_validate_json(f.read())
                 video_info.local_file_path = self.store_dir / video_info.user.nick / f"{video_info.vid}.mp4"
+                resize_file_path = self.store_dir / video_info.user.nick / f"{video_info.vid}-resized.mp4"
+                if resize_file_path.exists():
+                    video_info.local_file_path = resize_file_path
                 result.append(video_info)
         return result
 
